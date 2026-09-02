@@ -160,4 +160,5 @@ This project is based on a MakeoverMonday challenge. Full credit for the dataset
 - **New visualization:** Rechberger, N. — *U.S. Data Centers Tracker*, Tableau Public: <https://public.tableau.com/views/U_S_DataCentersTracker/Sheet1?:language=en-US&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link/>
 - **Basemap:** © Mapbox, © OpenStreetMap contributors.
 - **Tools:** Tableau Public (visualization), Python / pandas (data assessment), Quarto (this write-up).
+- **GitHub Repo**: <https://github.com/nilsrechberger/mscids-hvd03/tree/main/project_03/>
 - **Reference:** Wong, D. M. — *The Wall Street Journal Guide to Information Graphics* (German edition: *Die perfekte Infografik*), ISBN 978-3-86881-277-0.
