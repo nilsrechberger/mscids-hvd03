@@ -219,3 +219,11 @@ __marimo__/
 
 # Data dirs
 */data
+
+# Img dirs
+*/img
+
+# Quarto
+*.docx
+*.odt
+*.pdf
