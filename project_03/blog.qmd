@@ -1,0 +1,163 @@
+---
+title: "The Proliferation of U.S. Data Centers"
+subtitle: "A map that shows *where* AI lives is fine. A map that shows *whether it actually exists yet* is better."
+author: "Nils Rechberger"
+date: today
+lang: en
+format:
+  odt:
+    toc: true
+  docx:
+    toc: true
+    number-sections: false
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+## Knocking at AI's home door
+
+The rise of AI is built on chips, specifically GPUs (Graphics Processing Units). These are the things doing the actual mathematical heavy lifting behind every model output you have ever been mildly impressed by.
+
+Every laptop has a GPU in it. But enterprise-scale AI, the kind OpenAI runs with ChatGPT or Google with Gemini, needs a *few* more than one. Hundreds. Thousands. Hundreds of thousands. And they have to live somewhere.
+
+Enter the home of almost every AI model on the market: the data center. Big, unglamorous buildings that eat electricity, drink water and exhale heat. So where are they?
+
+Well. Here and there. Honestly? Almost everywhere.
+
+While browsing MakeoverMonday I came across a visualization of data center locations across the U.S., and it felt like a perfect candidate for a makeover. Let's have a look.
+
+### The question I actually want answered
+
+> **Problem statement:** The U.S. data center map tells me *where* facilities are. It does not tell me *whether they exist yet, who runs them, or how big they are* — which is the whole point if you care about the AI buildout rather than about dots.
+
+That is the story headline for this makeover: **most of the American "data center boom" is still a plan, and a map should say so.**
+
+## The Big Picture
+
+![The original MakeoverMonday visualization: US data center locations](img/vis_org.png){#fig-original}
+
+Pretty (not) comprehensive, isn't it?
+
+To be fair, it does exactly what it promises. It shows locations, and it shows the one thing everybody already knows: something absurd is happening in Northern Virginia, where a single circle swallows 481 facilities. Everything else is a grey pin with a number on it.
+
+And that is the problem. The numbers in the circles are an artifact of my current zoom level, not a property of the world. Zoom in and 481 becomes twelve circles; zoom out and Boston merges into New York. The chart changes its mind depending on how hard I scroll, and the default street basemap — highways, lakes, city labels, the works — is louder than the data drawn on top of it.
+
+Meanwhile the underlying dataset is sitting right there, full of things it never mentions.
+
+{{< pagebreak >}}
+
+## What's missing?
+
+```{python}
+#| label: load-data
+import pandas as pd
+
+pd.set_option('display.max_colwidth', 20)
+
+df = pd.read_csv('./data/data_center_loc.csv')
+df[
+    [
+        'facility_name',
+        'operator_name',
+        'status',
+        'info_source_1',
+        'mw'
+    ]
+].head()
+```
+
+So the dataset knows the name of each facility, who operates it, whether it is actually running, where the claim comes from, and how many megawatts it draws. The original map uses exactly none of that.
+
+Instead of just plotting locations, we can reduce the precision of the map a little and spend the freed-up attention on information.
+
+{{< pagebreak >}}
+
+### The improvements
+
+| Field | Encoding | Why |
+|---|---|---|
+| `facility_name` | label | gives the reader anchors to navigate by |
+| `operator_name` | label / tooltip | "who is doing this" is half the story |
+| `status` | colour | separates concrete from PowerPoint |
+| `info_source_1` | tooltip | lets the reader check my homework |
+| `mw` | size | a gigawatt campus should not look like a broom closet |
+
+## Before I trust my own chart: what this data can't do
+
+Every visualization is a claim, so it is worth being explicit about where this one can break. The three usual suspects: collection, processing, insight.
+
+```{python}
+#| label: missingness
+missing = (df.isna().mean() * 100).round(1).sort_values(ascending=False)
+missing.head(10)
+```
+
+**Collection.** This is not a register, it is a scrapbook. Records are assembled from press releases, operator announcements, trade publications and local news, which means coverage follows *newsworthiness*: a 1 GW AI campus with a press kit gets in, a boring 2 MW colocation facility in Nebraska may not. Half the pipeline hides behind codenames — "Project Marvel", "Project Tango", "Project Jupiter" — because operators do not want the site known before the land deal closes, so the operator field is missing exactly where the money is most interesting. Megawatt figures are usually self-reported or estimated by a journalist, not metered. Coordinates are often the town or county, not the building, partly for security reasons. And nobody agrees on what counts as "a data center" in the first place.
+
+**Processing.** The `status` field does the most damage. A category like *Approved/Permitted/Under construction* collapses three genuinely different states of reality into one colour, and there is no way back from that in my viz. `mw` is missing for a chunk of rows, and a missing size in Tableau does not shout — it just quietly draws a small dot, which looks like a small facility. Are the megawatts current draw or full build-out capacity? IT load or total facility load? The column does not say, so I am mixing units and pretending I am not. Then there is granularity: one campus can appear as five records, or five buildings can appear as one, which silently reweights the map.
+
+**Insight.** The biggest trap is that a dot map encodes *presence*, not *magnitude* — so density reads as importance even when twenty small facilities matter less than one hyperscale campus next door. My labels are a second bias: I chose which facilities get named, so the "story" of the map is partly a story about my label placement algorithm and my patience. Counting proposals as though they were concrete overstates the buildout, because a meaningful share of "proposed" will never be poured. There is no denominator here — no population, no grid capacity, no land price — so clusters mostly reflect cheap power, fibre and friendly permitting rather than anything about AI itself. And there is no time dimension at all, which means this map can describe a snapshot but cannot support a single sentence containing the word "growth".
+
+Fine. Caveats logged. Let's draw.
+
+## What the reader should be able to answer
+
+The purpose of the new visualization is not "look, a map". A reader should be able to walk up to it and answer:
+
+1. Where in the U.S. are data centers concentrated?
+2. Which of those facilities are actually **operating**, and which are proposed, approved, expanding, suspended or cancelled?
+3. **Who** operates a given facility?
+4. **How big** is it, in megawatts, relative to its neighbours?
+5. Which regions are running real capacity versus sitting on a speculative pipeline?
+6. **Where does this claim come from** — can I click through to the source?
+
+Question 2 and question 5 are the ones the original map cannot answer at all, and they are the ones that decide whether the AI buildout is a fact or a forecast.
+
+## Nothing new, but better
+
+![US Data Center Locations, remade](img/vis_new.png){#fig-makeover}
+
+**Link to the visualization on Tableau Public:**
+[U.S. Data Centers Tracker](https://public.tableau.com/views/U_S_DataCentersTracker/Sheet1?:language=en-US&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link)
+
+Same country, same dots, roughly the same amount of ink — and suddenly it says something.
+
+### Why this is an improvement, and not just a different colour scheme
+
+**Chart choice.** I kept a map, because geography is genuinely the variable of interest: data centers cluster around power, water and fibre, and that is a spatial story. What I dropped is the *clustering*. Aggregated count bubbles answer "how many things are vaguely near here", which is a question nobody asked; individual marks answer "what is here", which is the question everybody asks. The cost is overplotting, and I paid it deliberately: in Northern Virginia and central Texas the marks pile up. That trade is worth it, because the alternative hides every attribute behind a number in a grey circle.
+
+**Colour.** Status gets a categorical hue palette, because status is nominal — there is no order from "cancelled" to "operating", so a sequential or diverging ramp would be lying. Seven categories is honestly one or two more than colour can carry cleanly, and blue/green pairs are the weak point for red-green colour vision deficiency. So colour is deliberately *not* the only channel: labels and tooltips carry the same information in text, and the legend doubles as a highlighter, so a reader can isolate one status instead of trying to separate hues by eye. If I pushed this further, the honest fix is small multiples — one mini-map per status — rather than an eighth colour.
+
+{{< pagebreak >}}
+
+**Size.** Megawatts drive mark size, so a hyperscale campus visually outweighs a small colocation site. This is the single biggest analytical upgrade: the original map treats a 1,000 MW project and a 5 MW one as identical, which is how "the U.S. has thousands of data centers" turns into a meaningless sentence.
+
+**Annotations.** Selected facilities carry text labels. They are not decoration, they are handrails: "Amazon Data Center", "Cerebras Systems Data Center", "Hut 8 Beacon Point Data Center" turn an abstract point cloud into recognisable names and let a reader orient themselves without hovering. I labelled selectively rather than exhaustively, because labelling everything would reproduce exactly the illegibility I was trying to fix.
+
+**Tooltip.** The source URL travels with every mark. This is a small thing that matters a lot for a dataset stitched together from press releases: the reader can verify any individual claim instead of taking the map's word for it.
+
+**Alignment and layout.** One full-width map, no competing panels, so nothing steals the eye. The basemap is desaturated to light grey and stripped of highways and hydrography, which inverts the original's figure–ground problem: previously the map was the content and the data was a garnish. The legend sits top-right, out of the way of the dense East Coast marks, and labels are nudged to the open space west of their anchors so callout text never sits on top of another facility.
+
+## Conclusion
+
+The original visualization answers one question honestly and stops. My version answers six, at the price of some overplotting and one slightly overloaded colour legend — and I think that is the right trade, because the interesting thing about American data centers in 2026 is not *that* they exist but *how much of them still doesn't*.
+
+Look at the remade map for ten seconds and the yellow jumps out: an enormous share of the pipeline is **proposed**, not operating. The AI buildout, seen this way, is less a landscape of humming buildings than a landscape of intentions, permits and land options — with a handful of very large, very real anchors around Virginia, Texas and Ohio doing the actual work.
+
+The original map would have let me write "data centers are everywhere". This one makes me write something more useful: *plans* are everywhere. Concrete is not. And if you are forecasting electricity demand, water use or GPU capacity off a dot map, that distinction is the entire ballgame.
+
+Somewhere in there is a follow-up post about what happens to the local grid when the yellow dots turn blue. But that needs a time dimension, and this dataset does not have one — which, if you have been paying attention, is exactly what I warned you about above.
+
+## Acknowledgements and references
+
+This project is based on a MakeoverMonday challenge. Full credit for the dataset selection and the original visualization goes to the MakeoverMonday community.
+
+- **MakeoverMonday challenge (dataset and original visualization):** MakeoverMonday, <https://makeovermonday.vercel.app/dataset/us-data-center-locations/>
+- **Original source article / visualization being made over:** <https://experience.arcgis.com/experience/5a4d072ad01449bba5698a80103fb909/>
+- **Source data:** `data_center_loc.csv`, provided via the MakeoverMonday week above: <https://docs.google.com/spreadsheets/d/1JJ6kcVo-NjlAYtznwHOki2DVl4WWV6lhy-eXhFCdKKU/edit?gid=386766486#gid=386766486/>
+- **New visualization:** Rechberger, N. — *U.S. Data Centers Tracker*, Tableau Public: <https://public.tableau.com/views/U_S_DataCentersTracker/Sheet1?:language=en-US&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link/>
+- **Basemap:** © Mapbox, © OpenStreetMap contributors.
+- **Tools:** Tableau Public (visualization), Python / pandas (data assessment), Quarto (this write-up).
+- **Reference:** Wong, D. M. — *The Wall Street Journal Guide to Information Graphics* (German edition: *Die perfekte Infografik*), ISBN 978-3-86881-277-0.
